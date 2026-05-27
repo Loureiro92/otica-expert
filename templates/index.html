@@ -8,7 +8,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
     body { background: #f5f5f5; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
     .app { background: white; border-radius: 16px; width: 100%; max-width: 480px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: #534AB7; color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .header { background: #534AB7; color: white; padding: 16px 20px; }
     .header h1 { font-size: 18px; font-weight: 500; }
     .header p { font-size: 12px; opacity: 0.8; }
     .tabs { display: flex; border-bottom: 1px solid #eee; }
@@ -21,11 +21,19 @@
     .opcao:hover, .opcao.selecionado { background: #EEEDFE; border-color: #AFA9EC; color: #3C3489; }
     .progresso { height: 4px; background: #eee; border-radius: 2px; margin-bottom: 20px; }
     .progresso-fill { height: 100%; background: #534AB7; border-radius: 2px; transition: width 0.3s; }
-    .resultado { background: #EEEDFE; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .resultado h3 { color: #3C3489; font-size: 15px; margin-bottom: 8px; }
-    .resultado p { color: #534AB7; font-size: 13px; line-height: 1.6; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .loading { color: #888; font-size: 13px; font-style: italic; text-align: center; padding: 20px; }
+    .resultado-texto { background: #EEEDFE; border-radius: 12px; padding: 16px; margin-bottom: 16px; font-size: 13px; color: #534AB7; line-height: 1.6; }
+    .grid-oculos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .card-oculos { border: 1px solid #eee; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: all 0.15s; }
+    .card-oculos:hover { border-color: #AFA9EC; background: #EEEDFE; }
+    .card-oculos img { width: 100%; height: 80px; object-fit: contain; margin-bottom: 8px; }
+    .card-oculos p { font-size: 12px; font-weight: 500; color: #333; margin-bottom: 4px; }
+    .card-oculos span { font-size: 11px; color: #888; }
     .btn { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: white; font-size: 14px; cursor: pointer; margin-top: 8px; }
-    .chat-msgs { height: 380px; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+    .btn-primary { background: #534AB7; color: white; border: none; margin-bottom: 8px; }
+    .chat-msgs { height: 340px; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 8px; }
     .bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
     .bubble-bot { background: #f0f0f0; color: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .bubble-user { background: #534AB7; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
@@ -33,23 +41,28 @@
     .sugestao { font-size: 12px; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; color: #534AB7; }
     .chat-input { display: flex; gap: 8px; }
     .chat-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; outline: none; }
-    .chat-input button { padding: 10px 16px; background: #534AB7; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; }
-    .step { display: none; }
-    .step.active { display: block; }
-    .loading { color: #888; font-size: 13px; font-style: italic; }
+    .chat-input button { padding: 10px 16px; background: #534AB7; color: white; border: none; border-radius: 10px; cursor: pointer; }
+    .galeria-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .galeria-tab { font-size: 12px; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; color: #534AB7; }
+    .galeria-tab.active { background: #534AB7; color: white; border-color: #534AB7; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 16px; padding: 20px; width: 90%; max-width: 400px; text-align: center; }
+    .modal-content img { width: 100%; max-height: 200px; object-fit: contain; margin-bottom: 12px; }
+    .modal-content h3 { font-size: 16px; margin-bottom: 8px; color: #222; }
+    .modal-content p { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="header">
-      <div>
-        <h1>👓 Ótica Expert</h1>
-        <p>Área exclusiva do aluno</p>
-      </div>
+      <h1>👓 Ótica Expert</h1>
+      <p>Área exclusiva do aluno</p>
     </div>
 
     <div class="tabs">
       <button class="tab active" onclick="trocarAba('quiz')">Indicador</button>
+      <button class="tab" onclick="trocarAba('galeria')">Catálogo</button>
       <button class="tab" onclick="trocarAba('chat')">Chat</button>
     </div>
 
@@ -57,41 +70,50 @@
       <div id="step1" class="step active">
         <div class="progresso"><div class="progresso-fill" style="width:33%"></div></div>
         <p class="pergunta">Qual é o formato do seu rosto?</p>
-        <button class="opcao" onclick="escolher('rosto', 'Oval', this)">Oval</button>
-        <button class="opcao" onclick="escolher('rosto', 'Redondo', this)">Redondo</button>
-        <button class="opcao" onclick="escolher('rosto', 'Quadrado', this)">Quadrado</button>
-        <button class="opcao" onclick="escolher('rosto', 'Coração', this)">Coração</button>
+        <button class="opcao" onclick="escolher('rosto','oval',this)">Oval</button>
+        <button class="opcao" onclick="escolher('rosto','redondo',this)">Redondo</button>
+        <button class="opcao" onclick="escolher('rosto','quadrado',this)">Quadrado</button>
+        <button class="opcao" onclick="escolher('rosto','coração',this)">Coração</button>
+        <button class="opcao" onclick="escolher('rosto','retangulo',this)">Retângulo</button>
       </div>
-
       <div id="step2" class="step">
         <div class="progresso"><div class="progresso-fill" style="width:66%"></div></div>
         <p class="pergunta">Qual é o seu estilo?</p>
-        <button class="opcao" onclick="escolher('estilo', 'Clássico/executivo', this)">Clássico / Executivo</button>
-        <button class="opcao" onclick="escolher('estilo', 'Moderno/fashion', this)">Moderno / Fashion</button>
-        <button class="opcao" onclick="escolher('estilo', 'Despojado/casual', this)">Despojado / Casual</button>
-        <button class="opcao" onclick="escolher('estilo', 'Esportivo', this)">Esportivo</button>
+        <button class="opcao" onclick="escolher('estilo','clássico/executivo',this)">Clássico / Executivo</button>
+        <button class="opcao" onclick="escolher('estilo','moderno/fashion',this)">Moderno / Fashion</button>
+        <button class="opcao" onclick="escolher('estilo','despojado/casual',this)">Despojado / Casual</button>
+        <button class="opcao" onclick="escolher('estilo','esportivo',this)">Esportivo</button>
       </div>
-
       <div id="step3" class="step">
         <div class="progresso"><div class="progresso-fill" style="width:99%"></div></div>
         <p class="pergunta">Para qual uso principal?</p>
-        <button class="opcao" onclick="escolher('uso', 'Uso diário', this)">Uso diário</button>
-        <button class="opcao" onclick="escolher('uso', 'Trabalho/escritório', this)">Trabalho / Escritório</button>
-        <button class="opcao" onclick="escolher('uso', 'Esporte', this)">Esporte</button>
-        <button class="opcao" onclick="escolher('uso', 'Grau/visão', this)">Grau / Visão</button>
+        <button class="opcao" onclick="escolher('uso','Uso diário',this)">Uso diário</button>
+        <button class="opcao" onclick="escolher('uso','Trabalho/escritório',this)">Trabalho / Escritório</button>
+        <button class="opcao" onclick="escolher('uso','Esporte',this)">Esporte</button>
+        <button class="opcao" onclick="escolher('uso','Grau/visão',this)">Grau / Visão</button>
       </div>
-
       <div id="step-result" class="step">
         <div id="resultado-content"></div>
         <button class="btn" onclick="reiniciar()">🔄 Refazer questionário</button>
       </div>
     </div>
 
+    <div id="page-galeria" class="page">
+      <div class="galeria-tabs">
+        <button class="galeria-tab active" onclick="filtrarGaleria('todos', this)">Todos</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('redondo', this)">Redondo</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('aviador', this)">Aviador</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('gatinho', this)">Gatinho</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('quadrado', this)">Quadrado</button>
+      </div>
+      <div id="grid-galeria" class="grid-oculos"></div>
+    </div>
+
     <div id="page-chat" class="page">
       <div class="chat-msgs" id="chat-msgs">
         <div class="bubble bubble-bot">Olá! Sou especialista em armações de óculos. Pode me perguntar qualquer coisa! 😊</div>
       </div>
-      <div style="margin-top: 12px;">
+      <div style="margin-top:12px;">
         <div class="sugestoes">
           <button class="sugestao" onclick="enviarSugestao('Qual armação combina com rosto oval?')">Rosto oval</button>
           <button class="sugestao" onclick="enviarSugestao('Quais materiais são mais duráveis?')">Materiais</button>
@@ -105,16 +127,62 @@
     </div>
   </div>
 
+  <div id="modal" class="modal" onclick="fecharModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <img id="modal-img" src="" alt="">
+      <h3 id="modal-nome"></h3>
+      <p id="modal-desc"></p>
+      <button class="btn btn-primary" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
+
   <script>
     const respostas = {};
     const sessao = Math.random().toString(36).substring(7);
     let stepAtual = 1;
+    let catalogoData = [];
+
+    async function carregarCatalogo() {
+      const res = await fetch('/catalogo');
+      catalogoData = await res.json();
+      renderGaleria(catalogoData);
+    }
+
+    function renderGaleria(lista) {
+      const grid = document.getElementById('grid-galeria');
+      grid.innerHTML = lista.map(o => `
+        <div class="card-oculos" onclick="abrirModal('${o.imagem}','${o.nome}','${o.descricao}')">
+          <img src="/static/oculos/${o.imagem}" alt="${o.nome}">
+          <p>${o.nome}</p>
+          <span>${o.rostos.join(', ')}</span>
+        </div>
+      `).join('');
+    }
+
+    function filtrarGaleria(tipo, btn) {
+      document.querySelectorAll('.galeria-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      if (tipo === 'todos') renderGaleria(catalogoData);
+      else renderGaleria(catalogoData.filter(o => o.imagem.includes(tipo) || o.nome.toLowerCase().includes(tipo)));
+    }
+
+    function abrirModal(imagem, nome, desc) {
+      document.getElementById('modal-img').src = `/static/oculos/${imagem}`;
+      document.getElementById('modal-nome').textContent = nome;
+      document.getElementById('modal-desc').textContent = desc;
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function fecharModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
 
     function trocarAba(aba) {
-      document.getElementById('page-quiz').classList.toggle('active', aba === 'quiz');
-      document.getElementById('page-chat').classList.toggle('active', aba === 'chat');
-      document.querySelectorAll('.tab').forEach((t, i) => {
-        t.classList.toggle('active', (aba === 'quiz' && i === 0) || (aba === 'chat' && i === 1));
+      ['quiz','galeria','chat'].forEach(a => {
+        document.getElementById('page-'+a).classList.toggle('active', a===aba);
+      });
+      document.querySelectorAll('.tab').forEach((t,i) => {
+        t.classList.toggle('active', ['quiz','galeria','chat'][i]===aba);
       });
     }
 
@@ -126,7 +194,7 @@
         stepAtual++;
         if (stepAtual <= 3) {
           document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-          document.getElementById('step' + stepAtual).classList.add('active');
+          document.getElementById('step'+stepAtual).classList.add('active');
         } else {
           buscarRecomendacao();
         }
@@ -140,16 +208,23 @@
 
       const res = await fetch('/recomendar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify(respostas)
       });
       const data = await res.json();
 
-      document.getElementById('resultado-content').innerHTML = `
-        <div class="resultado">
-          <h3>✨ Sua armação ideal</h3>
-          <p>${data.resposta.replace(/\n/g, '<br>')}</p>
+      const cards = data.recomendados.map(o => `
+        <div class="card-oculos" onclick="abrirModal('${o.imagem}','${o.nome}','${o.descricao}')">
+          <img src="/static/oculos/${o.imagem}" alt="${o.nome}">
+          <p>${o.nome}</p>
+          <span>Toque para ver detalhes</span>
         </div>
+      `).join('');
+
+      document.getElementById('resultado-content').innerHTML = `
+        <div class="resultado-texto">${data.resposta.replace(/\n/g,'<br>')}</div>
+        <p style="font-size:13px;font-weight:500;color:#333;margin-bottom:12px;">Armações recomendadas para você:</p>
+        <div class="grid-oculos">${cards}</div>
       `;
     }
 
@@ -158,6 +233,7 @@
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
       document.getElementById('step1').classList.add('active');
       document.querySelectorAll('.opcao').forEach(b => b.classList.remove('selecionado'));
+      Object.keys(respostas).forEach(k => delete respostas[k]);
     }
 
     async function enviar() {
@@ -170,11 +246,10 @@
 
       const res = await fetch('/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: msg, sessao })
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({mensagem: msg, sessao})
       });
       const data = await res.json();
-
       document.querySelector('.loading-bubble')?.remove();
       adicionarBubble(data.resposta, 'bot');
     }
@@ -187,11 +262,13 @@
     function adicionarBubble(texto, tipo, classe) {
       const msgs = document.getElementById('chat-msgs');
       const div = document.createElement('div');
-      div.className = `bubble bubble-${tipo} ${classe || ''}`;
-      div.innerHTML = texto.replace(/\n/g, '<br>');
+      div.className = `bubble bubble-${tipo} ${classe||''}`;
+      div.innerHTML = texto.replace(/\n/g,'<br>');
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
     }
+
+    carregarCatalogo();
   </script>
 </body>
 </html>
