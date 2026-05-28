@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ótica Expert</title>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
     body { background: #f5f5f5; display: flex; justify-content: center; padding: 20px; min-height: 100vh; }
@@ -11,8 +12,8 @@
     .header { background: #534AB7; color: white; padding: 16px 20px; }
     .header h1 { font-size: 18px; font-weight: 500; }
     .header p { font-size: 12px; opacity: 0.8; }
-    .tabs { display: flex; border-bottom: 1px solid #eee; }
-    .tab { flex: 1; padding: 14px; text-align: center; font-size: 14px; cursor: pointer; color: #888; border: none; background: none; }
+    .tabs { display: flex; border-bottom: 1px solid #eee; overflow-x: auto; }
+    .tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 13px; cursor: pointer; color: #888; border: none; background: none; white-space: nowrap; }
     .tab.active { color: #534AB7; border-bottom: 2px solid #534AB7; font-weight: 500; }
     .page { display: none; padding: 20px; }
     .page.active { display: block; }
@@ -33,7 +34,8 @@
     .card-oculos span { font-size: 11px; color: #888; }
     .btn { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: white; font-size: 14px; cursor: pointer; margin-top: 8px; }
     .btn-primary { background: #534AB7; color: white; border: none; margin-bottom: 8px; }
-    .chat-msgs { height: 340px; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+    .btn-danger { background: #e74c3c; color: white; border: none; margin-bottom: 8px; }
+    .chat-msgs { height: 300px; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 8px; }
     .bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
     .bubble-bot { background: #f0f0f0; color: #222; align-self: flex-start; border-bottom-left-radius: 4px; }
     .bubble-user { background: #534AB7; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
@@ -47,10 +49,20 @@
     .galeria-tab.active { background: #534AB7; color: white; border-color: #534AB7; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
     .modal.active { display: flex; }
-    .modal-content { background: white; border-radius: 16px; padding: 20px; width: 90%; max-width: 400px; text-align: center; }
-    .modal-content img { width: 100%; max-height: 200px; object-fit: contain; margin-bottom: 12px; }
+    .modal-content { background: white; border-radius: 16px; padding: 20px; width: 90%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto; }
+    .modal-content img { width: 100%; max-height: 160px; object-fit: contain; margin-bottom: 12px; }
     .modal-content h3 { font-size: 16px; margin-bottom: 8px; color: #222; }
     .modal-content p { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+    .provador-container { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; }
+    .provador-container video, .provador-container canvas { width: 100%; display: block; }
+    .provador-container canvas { position: absolute; top: 0; left: 0; }
+    .provador-foto { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #f5f5f5; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+    .provador-foto img { max-width: 100%; max-height: 400px; display: block; }
+    .provador-foto canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .oculos-selector { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 12px; }
+    .oculos-thumb { flex-shrink: 0; width: 60px; height: 40px; border: 2px solid #eee; border-radius: 8px; padding: 4px; cursor: pointer; object-fit: contain; background: white; }
+    .oculos-thumb.ativo { border-color: #534AB7; }
+    .status-msg { font-size: 12px; color: #888; text-align: center; padding: 8px; }
   </style>
 </head>
 <body>
@@ -63,9 +75,11 @@
     <div class="tabs">
       <button class="tab active" onclick="trocarAba('quiz')">Indicador</button>
       <button class="tab" onclick="trocarAba('galeria')">Catálogo</button>
+      <button class="tab" onclick="trocarAba('provador')">Provador</button>
       <button class="tab" onclick="trocarAba('chat')">Chat</button>
     </div>
 
+    <!-- QUIZ -->
     <div id="page-quiz" class="page active">
       <div id="step1" class="step active">
         <div class="progresso"><div class="progresso-fill" style="width:33%"></div></div>
@@ -98,17 +112,49 @@
       </div>
     </div>
 
+    <!-- CATALOGO -->
     <div id="page-galeria" class="page">
       <div class="galeria-tabs">
-        <button class="galeria-tab active" onclick="filtrarGaleria('todos', this)">Todos</button>
-        <button class="galeria-tab" onclick="filtrarGaleria('redondo', this)">Redondo</button>
-        <button class="galeria-tab" onclick="filtrarGaleria('aviador', this)">Aviador</button>
-        <button class="galeria-tab" onclick="filtrarGaleria('gatinho', this)">Gatinho</button>
-        <button class="galeria-tab" onclick="filtrarGaleria('quadrado', this)">Quadrado</button>
+        <button class="galeria-tab active" onclick="filtrarGaleria('todos',this)">Todos</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('redondo',this)">Redondo</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('aviador',this)">Aviador</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('gatinho',this)">Gatinho</button>
+        <button class="galeria-tab" onclick="filtrarGaleria('quadrado',this)">Quadrado</button>
       </div>
       <div id="grid-galeria" class="grid-oculos"></div>
     </div>
 
+    <!-- PROVADOR -->
+    <div id="page-provador" class="page">
+      <p style="font-size:13px;color:#666;margin-bottom:12px;">Escolha um óculos para experimentar:</p>
+      <div class="oculos-selector" id="oculos-selector"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="abrirCamera()" style="margin:0;">📷 Câmera ao vivo</button>
+        <button class="btn" onclick="document.getElementById('input-foto').click()" style="margin:0;">🖼️ Enviar foto</button>
+      </div>
+      <input type="file" id="input-foto" accept="image/*" style="display:none" onchange="usarFoto(event)">
+
+      <div id="status-provador" class="status-msg">Selecione um óculos e escolha um modo acima</div>
+
+      <div id="provador-camera" style="display:none;">
+        <div class="provador-container">
+          <video id="video" autoplay muted playsinline></video>
+          <canvas id="canvas-camera"></canvas>
+        </div>
+        <button class="btn btn-danger" onclick="pararCamera()" style="margin-top:8px;">⏹ Parar câmera</button>
+      </div>
+
+      <div id="provador-foto" style="display:none;">
+        <div class="provador-foto" id="foto-container">
+          <img id="foto-img" src="" alt="sua foto">
+          <canvas id="canvas-foto"></canvas>
+        </div>
+        <button class="btn" onclick="limparFoto()" style="margin-top:8px;">🗑️ Remover foto</button>
+      </div>
+    </div>
+
+    <!-- CHAT -->
     <div id="page-chat" class="page">
       <div class="chat-msgs" id="chat-msgs">
         <div class="bubble bubble-bot">Olá! Sou especialista em armações de óculos. Pode me perguntar qualquer coisa! 😊</div>
@@ -127,27 +173,225 @@
     </div>
   </div>
 
+  <!-- MODAL -->
   <div id="modal" class="modal" onclick="fecharModal()">
     <div class="modal-content" onclick="event.stopPropagation()">
       <img id="modal-img" src="" alt="">
       <h3 id="modal-nome"></h3>
       <p id="modal-desc"></p>
-      <button class="btn btn-primary" onclick="fecharModal()">Fechar</button>
+      <button class="btn btn-primary" onclick="experimentarDoModal()">👓 Experimentar</button>
+      <button class="btn" onclick="fecharModal()">Fechar</button>
     </div>
   </div>
 
   <script>
-    const respostas = {};
     const sessao = Math.random().toString(36).substring(7);
+    const respostas = {};
     let stepAtual = 1;
     let catalogoData = [];
+    let oculosSelecionado = null;
+    let streamCamera = null;
+    let animFrameId = null;
+    let modelsCarregados = false;
+    let modalOculosAtual = null;
 
+    // Carregar modelos face-api
+    async function carregarModels() {
+      const MODEL_URL = '/static/models';
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      modelsCarregados = true;
+      document.getElementById('status-provador').textContent = 'Modelos carregados! Selecione um óculos.';
+    }
+
+    // Carregar catálogo
     async function carregarCatalogo() {
       const res = await fetch('/catalogo');
       catalogoData = await res.json();
       renderGaleria(catalogoData);
+      renderOculosSelector();
     }
 
+    function renderOculosSelector() {
+      const sel = document.getElementById('oculos-selector');
+      sel.innerHTML = catalogoData.map(o => `
+        <img class="oculos-thumb" src="/static/oculos/${o.imagem}" 
+             alt="${o.nome}" title="${o.nome}"
+             onclick="selecionarOculos('${o.imagem}', this)">
+      `).join('');
+    }
+
+    function selecionarOculos(imagem, el) {
+      document.querySelectorAll('.oculos-thumb').forEach(t => t.classList.remove('ativo'));
+      el.classList.add('ativo');
+      oculosSelecionado = imagem;
+      document.getElementById('status-provador').textContent = `Óculos selecionado: ${imagem.replace('.png','')}`;
+    }
+
+    // Câmera ao vivo
+    async function abrirCamera() {
+      if (!oculosSelecionado) {
+        alert('Selecione um óculos primeiro!');
+        return;
+      }
+      if (!modelsCarregados) {
+        document.getElementById('status-provador').textContent = 'Carregando modelos, aguarde...';
+        await carregarModels();
+      }
+
+      document.getElementById('provador-camera').style.display = 'block';
+      document.getElementById('provador-foto').style.display = 'none';
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      streamCamera = stream;
+      const video = document.getElementById('video');
+      video.srcObject = stream;
+
+      video.onloadedmetadata = () => {
+        const canvas = document.getElementById('canvas-camera');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        detectarCamera();
+      };
+    }
+
+    async function detectarCamera() {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas-camera');
+      const ctx = canvas.getContext('2d');
+
+      const oculosImg = new Image();
+      oculosImg.src = `/static/oculos/${oculosSelecionado}`;
+      await new Promise(r => oculosImg.onload = r);
+
+      async function loop() {
+        const detections = await faceapi.detectAllFaces(
+          video, new faceapi.TinyFaceDetectorOptions()
+        ).withFaceLandmarks();
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        detections.forEach(det => {
+          const landmarks = det.landmarks;
+          const olhoEsq = landmarks.getLeftEye();
+          const olhoDir = landmarks.getRightEye();
+          desenharOculos(ctx, oculosImg, olhoEsq, olhoDir);
+        });
+
+        animFrameId = requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    function pararCamera() {
+      if (streamCamera) {
+        streamCamera.getTracks().forEach(t => t.stop());
+        streamCamera = null;
+      }
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      document.getElementById('provador-camera').style.display = 'none';
+    }
+
+    // Foto enviada
+    async function usarFoto(event) {
+      if (!oculosSelecionado) {
+        alert('Selecione um óculos primeiro!');
+        return;
+      }
+      if (!modelsCarregados) {
+        document.getElementById('status-provador').textContent = 'Carregando modelos, aguarde...';
+        await carregarModels();
+      }
+
+      pararCamera();
+      const file = event.target.files[0];
+      const url = URL.createObjectURL(file);
+
+      const fotoImg = document.getElementById('foto-img');
+      fotoImg.src = url;
+
+      document.getElementById('provador-foto').style.display = 'block';
+      document.getElementById('provador-camera').style.display = 'none';
+      document.getElementById('status-provador').textContent = 'Detectando rosto...';
+
+      fotoImg.onload = async () => {
+        const container = document.getElementById('foto-container');
+        const canvas = document.getElementById('canvas-foto');
+        canvas.width = fotoImg.offsetWidth;
+        canvas.height = fotoImg.offsetHeight;
+
+        const detections = await faceapi.detectAllFaces(
+          fotoImg, new faceapi.TinyFaceDetectorOptions()
+        ).withFaceLandmarks();
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const oculosImg = new Image();
+        oculosImg.src = `/static/oculos/${oculosSelecionado}`;
+        await new Promise(r => oculosImg.onload = r);
+
+        const scaleX = fotoImg.offsetWidth / fotoImg.naturalWidth;
+        const scaleY = fotoImg.offsetHeight / fotoImg.naturalHeight;
+
+        if (detections.length === 0) {
+          document.getElementById('status-provador').textContent = 'Rosto não detectado. Tente uma foto mais clara e de frente.';
+          return;
+        }
+
+        detections.forEach(det => {
+          const landmarks = det.landmarks;
+          const olhoEsq = landmarks.getLeftEye().map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
+          const olhoDir = landmarks.getRightEye().map(p => ({ x: p.x * scaleX, y: p.y * scaleY }));
+          desenharOculos(ctx, oculosImg, olhoEsq, olhoDir);
+        });
+
+        document.getElementById('status-provador').textContent = 'Pronto! Experimente outros modelos clicando nas miniaturas.';
+      };
+    }
+
+    function desenharOculos(ctx, oculosImg, olhoEsq, olhoDir) {
+      const exEsq = olhoEsq.reduce((s, p) => s + p.x, 0) / olhoEsq.length;
+      const eyEsq = olhoEsq.reduce((s, p) => s + p.y, 0) / olhoEsq.length;
+      const exDir = olhoDir.reduce((s, p) => s + p.x, 0) / olhoDir.length;
+      const eyDir = olhoDir.reduce((s, p) => s + p.y, 0) / olhoDir.length;
+
+      const distOlhos = Math.sqrt(Math.pow(exDir - exEsq, 2) + Math.pow(eyDir - eyEsq, 2));
+      const largura = distOlhos * 2.8;
+      const altura = largura * (oculosImg.height / oculosImg.width);
+      const cx = (exEsq + exDir) / 2;
+      const cy = (eyEsq + eyDir) / 2;
+      const angulo = Math.atan2(eyDir - eyEsq, exDir - exEsq);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angulo);
+      ctx.drawImage(oculosImg, -largura / 2, -altura / 2, largura, altura);
+      ctx.restore();
+    }
+
+    function limparFoto() {
+      document.getElementById('provador-foto').style.display = 'none';
+      document.getElementById('foto-img').src = '';
+      document.getElementById('canvas-foto').getContext('2d').clearRect(0, 0, 9999, 9999);
+      document.getElementById('status-provador').textContent = 'Selecione um óculos e escolha um modo acima';
+    }
+
+    // Experimentar do modal
+    function experimentarDoModal() {
+      fecharModal();
+      trocarAba('provador');
+      if (modalOculosAtual) {
+        const thumbs = document.querySelectorAll('.oculos-thumb');
+        thumbs.forEach(t => {
+          if (t.src.includes(modalOculosAtual)) {
+            selecionarOculos(modalOculosAtual, t);
+          }
+        });
+      }
+    }
+
+    // Galeria
     function renderGaleria(lista) {
       const grid = document.getElementById('grid-galeria');
       grid.innerHTML = lista.map(o => `
@@ -167,6 +411,7 @@
     }
 
     function abrirModal(imagem, nome, desc) {
+      modalOculosAtual = imagem;
       document.getElementById('modal-img').src = `/static/oculos/${imagem}`;
       document.getElementById('modal-nome').textContent = nome;
       document.getElementById('modal-desc').textContent = desc;
@@ -177,15 +422,17 @@
       document.getElementById('modal').classList.remove('active');
     }
 
+    // Abas
     function trocarAba(aba) {
-      ['quiz','galeria','chat'].forEach(a => {
+      ['quiz','galeria','provador','chat'].forEach(a => {
         document.getElementById('page-'+a).classList.toggle('active', a===aba);
       });
       document.querySelectorAll('.tab').forEach((t,i) => {
-        t.classList.toggle('active', ['quiz','galeria','chat'][i]===aba);
+        t.classList.toggle('active', ['quiz','galeria','provador','chat'][i]===aba);
       });
     }
 
+    // Quiz
     function escolher(campo, valor, btn) {
       btn.parentElement.querySelectorAll('.opcao').forEach(b => b.classList.remove('selecionado'));
       btn.classList.add('selecionado');
@@ -217,13 +464,13 @@
         <div class="card-oculos" onclick="abrirModal('${o.imagem}','${o.nome}','${o.descricao}')">
           <img src="/static/oculos/${o.imagem}" alt="${o.nome}">
           <p>${o.nome}</p>
-          <span>Toque para ver detalhes</span>
+          <span>Toque para experimentar</span>
         </div>
       `).join('');
 
       document.getElementById('resultado-content').innerHTML = `
         <div class="resultado-texto">${data.resposta.replace(/\n/g,'<br>')}</div>
-        <p style="font-size:13px;font-weight:500;color:#333;margin-bottom:12px;">Armações recomendadas para você:</p>
+        <p style="font-size:13px;font-weight:500;color:#333;margin-bottom:12px;">Armações recomendadas:</p>
         <div class="grid-oculos">${cards}</div>
       `;
     }
@@ -236,6 +483,7 @@
       Object.keys(respostas).forEach(k => delete respostas[k]);
     }
 
+    // Chat
     async function enviar() {
       const input = document.getElementById('input-msg');
       const msg = input.value.trim();
@@ -269,6 +517,7 @@
     }
 
     carregarCatalogo();
+    carregarModels();
   </script>
 </body>
 </html>
