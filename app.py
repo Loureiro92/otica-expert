@@ -1,4 +1,7 @@
 import os
+import base64
+import requests
+import io
 from flask import Flask, request, jsonify, render_template
 from google import genai
 from google.genai import types
@@ -6,59 +9,18 @@ from google.genai import types
 app = Flask(__name__, template_folder='templates')
 
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+HF_TOKEN = os.environ.get("HF_TOKEN")
 
 historicos = {}
 
 catalogo = [
-    {
-        "nome": "Redondo",
-        "imagem": "redondo.png",
-        "rostos": ["quadrado", "retangulo"],
-        "estilos": ["clássico", "despojado"],
-        "descricao": "Suaviza traços angulares e dá um toque vintage e sofisticado."
-    },
-    {
-        "nome": "Aviador",
-        "imagem": "aviador.png",
-        "rostos": ["oval", "coração"],
-        "estilos": ["clássico", "esportivo"],
-        "descricao": "Atemporal e versátil, combina com vários estilos e ocasiões."
-    },
-    {
-        "nome": "Gatinho",
-        "imagem": "gatinho.png",
-        "rostos": ["redondo", "quadrado", "oval"],
-        "estilos": ["moderno", "fashion"],
-        "descricao": "Feminino e marcante, realça o olhar e valoriza o rosto."
-    },
-    {
-        "nome": "Quadrado",
-        "imagem": "quadrado.png",
-        "rostos": ["oval", "redondo"],
-        "estilos": ["clássico", "executivo"],
-        "descricao": "Transmite seriedade e elegância, ideal para o ambiente profissional."
-    },
-    {
-        "nome": "Retangular",
-        "imagem": "retangular.png",
-        "rostos": ["oval", "redondo"],
-        "estilos": ["moderno", "executivo"],
-        "descricao": "Clean e moderno, combina com looks casuais e formais."
-    },
-    {
-        "nome": "Triangular",
-        "imagem": "triangular.png",
-        "rostos": ["oval", "quadrado"],
-        "estilos": ["moderno", "fashion"],
-        "descricao": "Diferenciado e estiloso, para quem quer se destacar."
-    },
-    {
-        "nome": "Coração",
-        "imagem": "coracao.png",
-        "rostos": ["oval", "redondo"],
-        "estilos": ["fashion", "despojado"],
-        "descricao": "Divertido e único, perfeito para personalidades marcantes."
-    }
+    {"nome": "Redondo", "imagem": "redondo.png", "rostos": ["quadrado", "retangulo"], "estilos": ["clássico", "despojado"], "descricao": "Suaviza traços angulares e dá um toque vintage e sofisticado."},
+    {"nome": "Aviador", "imagem": "aviador.png", "rostos": ["oval", "coração"], "estilos": ["clássico", "esportivo"], "descricao": "Atemporal e versátil, combina com vários estilos e ocasiões."},
+    {"nome": "Gatinho", "imagem": "gatinho.png", "rostos": ["redondo", "quadrado", "oval"], "estilos": ["moderno", "fashion"], "descricao": "Feminino e marcante, realça o olhar e valoriza o rosto."},
+    {"nome": "Quadrado", "imagem": "quadrado.png", "rostos": ["oval", "redondo"], "estilos": ["clássico", "executivo"], "descricao": "Transmite seriedade e elegância, ideal para o ambiente profissional."},
+    {"nome": "Retangular", "imagem": "retangular.png", "rostos": ["oval", "redondo"], "estilos": ["moderno", "executivo"], "descricao": "Clean e moderno, combina com looks casuais e formais."},
+    {"nome": "Triangular", "imagem": "triangular.png", "rostos": ["oval", "quadrado"], "estilos": ["moderno", "fashion"], "descricao": "Diferenciado e estiloso, para quem quer se destacar."},
+    {"nome": "Coração", "imagem": "coracao.png", "rostos": ["oval", "redondo"], "estilos": ["fashion", "despojado"], "descricao": "Divertido e único, perfeito para personalidades marcantes."}
 ]
 
 @app.route("/")
@@ -85,7 +47,7 @@ def chat():
     resposta = client.models.generate_content(
         model="gemini-2.5-flash",
         config=types.GenerateContentConfig(
-            system_instruction="Você é um assistente especialista em armações de óculos. Responda sempre em português, de forma simpática e objetiva. Ajude com dúvidas sobre armações, formatos de rosto, materiais e tendências."
+            system_instruction="Você é um assistente especialista em armações de óculos. Responda sempre em português, de forma simpática e objetiva."
         ),
         contents=historicos[sessao]
     )
@@ -122,10 +84,47 @@ def recomendar():
         contents=[types.Content(role="user", parts=[types.Part(text=prompt)])]
     )
 
-    return jsonify({
-        "resposta": resposta.text,
-        "recomendados": recomendados
-    })
+    return jsonify({"resposta": resposta.text, "recomendados": recomendados})
+
+@app.route("/gerar-provador", methods=["POST"])
+def gerar_provador():
+    try:
+        foto_base64 = request.json.get("foto")
+        descricao = request.json.get("descricao", "redondo")
+
+        foto_bytes = base64.b64decode(foto_base64.split(",")[1])
+
+        prompt = f"A person wearing {descricao} eyeglasses with thin gold frames and transparent lenses, natural photo, realistic, high quality portrait, the glasses fit perfectly on the face"
+
+        API_URL = "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5"
+        headers = {
+    "Authorization": f"Bearer {HF_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "num_inference_steps": 30,
+                "guidance_scale": 7.5,
+                "width": 512,
+                "height": 512
+            }
+        }
+
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+
+        if response.status_code == 200:
+            imagem_base64 = base64.b64encode(response.content).decode()
+            return jsonify({
+                "sucesso": True,
+                "imagem": f"data:image/jpeg;base64,{imagem_base64}"
+            })
+        else:
+            return jsonify({"sucesso": False, "erro": f"Erro {response.status_code}: {response.text}"})
+
+    except Exception as e:
+        return jsonify({"sucesso": False, "erro": str(e)})
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
